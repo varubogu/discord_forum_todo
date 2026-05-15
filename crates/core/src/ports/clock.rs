@@ -1,5 +1,4 @@
-//! `Clock` port. The system implementation lives in `core_infra::SystemClock`;
-//! tests use the in-crate `FakeClock` when `test-support` is enabled.
+//! `Clock` port plus an always-available `FakeClock` for tests.
 
 use chrono::{DateTime, Utc};
 
@@ -7,7 +6,6 @@ pub trait Clock: Send + Sync {
     fn now(&self) -> DateTime<Utc>;
 }
 
-#[cfg(feature = "test-support")]
 mod fake {
     use super::Clock;
     use chrono::{DateTime, Duration, Utc};
@@ -38,5 +36,4 @@ mod fake {
     }
 }
 
-#[cfg(feature = "test-support")]
 pub use fake::FakeClock;

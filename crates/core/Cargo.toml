@@ -25,6 +25,7 @@ async-trait.workspace = true
 enum_dispatch.workspace = true
 tracing.workspace = true
 unic-langid.workspace = true
+sha2.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true }
