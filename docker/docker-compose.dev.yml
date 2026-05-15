@@ -1,0 +1,22 @@
+name: discord_forum_todo_dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bot
+      POSTGRES_PASSWORD: bot
+      POSTGRES_DB: discord_forum_todo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bot -d discord_forum_todo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-dev-data:

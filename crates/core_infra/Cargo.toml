@@ -1,0 +1,39 @@
+[package]
+name = "discord_forum_todo_core_infra"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Adapter implementations for core: SeaORM repositories, Fluent translator, system clock."
+
+[lib]
+name = "core_infra"
+path = "src/lib.rs"
+
+[dependencies]
+discord_forum_todo_core = { workspace = true }
+
+thiserror.workspace = true
+tracing.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+async-trait.workspace = true
+tokio = { workspace = true }
+sea-orm.workspace = true
+fluent.workspace = true
+fluent-bundle.workspace = true
+unic-langid.workspace = true
+intl-memoizer.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true }
+tokio-test.workspace = true
+assert_matches.workspace = true
+testcontainers.workspace = true
+testcontainers-modules.workspace = true
+
+[lints]
+workspace = true

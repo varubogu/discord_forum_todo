@@ -1,0 +1,50 @@
+name: discord_forum_todo
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bot
+      POSTGRES_PASSWORD: bot
+      POSTGRES_DB: discord_forum_todo
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bot -d discord_forum_todo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migration:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    entrypoint: ["/usr/local/bin/migration", "up"]
+    environment:
+      DATABASE_URL: postgres://bot:bot@postgres:5432/discord_forum_todo
+      RUST_LOG: info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  bot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN:?missing DISCORD_TOKEN}
+      DATABASE_URL: postgres://bot:bot@postgres:5432/discord_forum_todo
+      RUST_LOG: ${RUST_LOG:-info}
+      RUST_LOG_FORMAT: ${RUST_LOG_FORMAT:-json}
+      BOT_DEFAULT_LOCALE: ${BOT_DEFAULT_LOCALE:-en-US}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+
+volumes:
+  postgres-data:

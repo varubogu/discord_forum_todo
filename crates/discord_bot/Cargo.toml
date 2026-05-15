@@ -1,0 +1,41 @@
+[package]
+name = "discord_forum_todo_discord_bot"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Binary that wires together core, core_infra, discord_task, discord_task_infra and runs the gateway + scheduler."
+
+[[bin]]
+name = "discord_forum_todo"
+path = "src/main.rs"
+
+[dependencies]
+discord_forum_todo_core = { workspace = true }
+discord_forum_todo_core_infra = { workspace = true }
+discord_forum_todo_discord_task = { workspace = true }
+discord_forum_todo_discord_task_infra = { workspace = true }
+discord_forum_todo_migration = { workspace = true }
+
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+chrono.workspace = true
+serde.workspace = true
+tokio = { workspace = true }
+tokio-util.workspace = true
+futures.workspace = true
+
+twilight-gateway.workspace = true
+twilight-http.workspace = true
+twilight-model.workspace = true
+twilight-cache-inmemory.workspace = true
+
+sea-orm.workspace = true
+figment.workspace = true
+
+[lints]
+workspace = true

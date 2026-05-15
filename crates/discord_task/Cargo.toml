@@ -1,0 +1,38 @@
+[package]
+name = "discord_forum_todo_discord_task"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Discord adapter for discord_forum_todo: slash commands, event handlers, Discord-specific ports."
+
+[lib]
+name = "discord_task"
+path = "src/lib.rs"
+
+[dependencies]
+discord_forum_todo_core = { workspace = true }
+
+thiserror.workspace = true
+tracing.workspace = true
+chrono.workspace = true
+serde.workspace = true
+async-trait.workspace = true
+enum_dispatch.workspace = true
+tokio = { workspace = true }
+
+twilight-model.workspace = true
+twilight-http.workspace = true
+twilight-gateway.workspace = true
+twilight-util.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true }
+tokio-test.workspace = true
+assert_matches.workspace = true
+wiremock.workspace = true
+
+[lints]
+workspace = true

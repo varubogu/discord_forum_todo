@@ -1,0 +1,27 @@
+[package]
+name = "discord_forum_todo_migration"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Database migrations for discord_forum_todo, managed by sea-orm-migration."
+
+[lib]
+name = "migration"
+path = "src/lib.rs"
+
+[[bin]]
+name = "migration"
+path = "src/main.rs"
+
+[dependencies]
+async-trait.workspace = true
+sea-orm-migration.workspace = true
+tokio = { workspace = true }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true

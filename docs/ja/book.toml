@@ -1,0 +1,18 @@
+[book]
+title = "discord_forum_todo ドキュメント"
+description = "Discord フォーラム Todo Bot のユーザー向け／管理者向け／運用者向け／開発者向けマニュアル"
+authors = ["varubogu"]
+language = "ja"
+multilingual = false
+src = "."
+
+[output.html]
+default-theme = "rust"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/varubogu/discord_forum_todo"
+edit-url-template = "https://github.com/varubogu/discord_forum_todo/edit/main/docs/ja/{path}"
+
+[output.html.search]
+enable = true
+limit-results = 30
+use-boolean-and = true

@@ -1,0 +1,35 @@
+[package]
+name = "discord_forum_todo_core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Pure domain layer of discord_forum_todo: entities, ports (traits), use cases generic over ports."
+
+[lib]
+name = "core_lib"
+path = "src/lib.rs"
+
+[features]
+default = []
+# Exposes hand-rolled fakes (FakeTaskRepository, FakeClock, ...) for downstream tests.
+test-support = []
+
+[dependencies]
+thiserror.workspace = true
+chrono.workspace = true
+serde.workspace = true
+async-trait.workspace = true
+enum_dispatch.workspace = true
+tracing.workspace = true
+unic-langid.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true }
+tokio-test.workspace = true
+assert_matches.workspace = true
+
+[lints]
+workspace = true

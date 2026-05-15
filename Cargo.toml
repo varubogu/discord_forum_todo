@@ -1,0 +1,96 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/core_infra",
+    "crates/discord_task",
+    "crates/discord_task_infra",
+    "crates/discord_bot",
+    "migration",
+]
+# crates/web_api is intentionally excluded for now (see docs/architecture/00-overview.md).
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.82"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/varubogu/discord_forum_todo"
+authors = ["varubogu"]
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+futures = "0.3"
+
+# Errors / logging
+thiserror = "1"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Time / ids / serde
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Discord
+twilight-gateway = "0.16"
+twilight-http = "0.16"
+twilight-model = "0.16"
+twilight-cache-inmemory = "0.16"
+twilight-util = { version = "0.16", features = ["builder"] }
+
+# Persistence
+sea-orm = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono", "with-uuid", "with-json"] }
+sea-orm-migration = { version = "1.1", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
+
+# i18n
+fluent = "0.16"
+fluent-bundle = "0.15"
+unic-langid = { version = "0.9", features = ["macros"] }
+intl-memoizer = "0.5"
+
+# Misc
+async-trait = "0.1"
+enum_dispatch = "0.3"
+dashmap = "6"
+regex = "1"
+sha2 = "0.10"
+hex = "0.4"
+figment = { version = "0.10", features = ["env", "toml"] }
+
+# Test helpers
+mockall = "0.13"
+assert_matches = "1"
+tokio-test = "0.4"
+testcontainers = "0.23"
+testcontainers-modules = { version = "0.11", features = ["postgres"] }
+wiremock = "0.6"
+
+# Internal crates (intra-workspace references)
+discord_forum_todo_core = { path = "crates/core" }
+discord_forum_todo_core_infra = { path = "crates/core_infra" }
+discord_forum_todo_discord_task = { path = "crates/discord_task" }
+discord_forum_todo_discord_task_infra = { path = "crates/discord_task_infra" }
+discord_forum_todo_migration = { path = "migration" }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+needless_pass_by_value = "allow"
+doc_markdown = "allow"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
