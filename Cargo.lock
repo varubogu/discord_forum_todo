@@ -771,6 +771,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "discord_forum_todo_core",
+ "discord_forum_todo_migration",
  "fluent",
  "fluent-bundle",
  "intl-memoizer",
