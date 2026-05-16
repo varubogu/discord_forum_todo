@@ -36,6 +36,7 @@ twilight-cache-inmemory.workspace = true
 
 sea-orm.workspace = true
 figment.workspace = true
+unic-langid.workspace = true
 
 [lints]
 workspace = true

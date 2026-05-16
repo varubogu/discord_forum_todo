@@ -9,6 +9,7 @@ use core_lib::ports::{ActiveMessageRepoError, ActiveMessageRepository};
 
 use crate::entities::active_messages::{self, Column, Entity};
 
+#[derive(Clone)]
 pub struct SeaActiveMessageRepository {
     db: Arc<DatabaseConnection>,
 }

@@ -811,6 +811,7 @@ dependencies = [
  "twilight-gateway",
  "twilight-http",
  "twilight-model",
+ "unic-langid",
 ]
 
 [[package]]
@@ -846,7 +847,9 @@ dependencies = [
  "discord_forum_todo_core",
  "discord_forum_todo_core_infra",
  "discord_forum_todo_discord_task",
+ "discord_forum_todo_migration",
  "hex",
+ "regex",
  "sea-orm",
  "serde",
  "serde_json",

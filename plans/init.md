@@ -1,6 +1,6 @@
 # 初期構築プランと進捗
 
-> 作成: 2026-05-14 / 最終更新: 2026-05-15
+> 作成: 2026-05-14 / 最終更新: 2026-05-16
 > プロジェクト: `discord_forum_todo` — Discord フォーラムをタスクボードとして運用する Rust 製 Bot
 
 このファイルは初期構築の全体計画と現時点の進捗を 1 箇所にまとめたものです。詳細な設計ドキュメントは [`docs/architecture/`](../docs/architecture/) を参照してください。
@@ -77,8 +77,8 @@ migration          → sea-orm-migration のみ
 | 3 | core クレート: ドメイン + ポート + ユースケース + テストサポート + 単体/統合テスト | ✅ |
 | 4 | migration（SeaORM）+ core_infra の SeaORM リポジトリ実装 + testcontainers 統合テスト | ✅ |
 | 5 | discord_task: スラッシュコマンド/イベントハンドラ + Discord 固有ポート定義 + mock Twilight テスト | ✅ |
-| 6 | discord_task_infra: ポート実装 + Discord 固有テーブル | ⏳ |
-| 7 | discord_bot: main、DI 配線、scheduler、graceful shutdown | ⏳ |
+| 6 | discord_task_infra: ポート実装 + Discord 固有テーブル | ✅ |
+| 7 | discord_bot: main、DI 配線、scheduler、graceful shutdown | ✅ |
 | 8 | i18n 実装: fluent-rs ベースの Translator 実体、ロケール解決 + テスト | ⏳ |
 | 9 | Docker 本番ビルド検証 + docker-compose で end-to-end 起動確認 | ⏳ |
 | 10 | release workflow（GHCR push, GitHub Release ノート）+ v0.1.0 タグ | ⏳ |
@@ -315,12 +315,89 @@ migration          → sea-orm-migration のみ
 
 ---
 
-## 9. これからの作業（Phase 6 以降）
+## 10.5 Phase 6 成果物（完了）
 
-### Phase 6 以降
+### discord_task_infra: Twilight HTTP クライアントによるポート実装
 
-- Phase 6: discord_task_infra（GuildSettings Twilight 経由実装、ActiveMessage 同期）
-- Phase 7: discord_bot バイナリで全部を配線、scheduler を spawn、SIGINT/SIGTERM ハンドラ
+| ファイル | 実装ポート |
+|----------|-----------|
+| [src/interaction_responder.rs](../crates/discord_task_infra/src/interaction_responder.rs) | `InteractionResponder`（ephemeral / public 返信） |
+| [src/forum_service.rs](../crates/discord_task_infra/src/forum_service.rs) | `ForumService`（`create_forum_thread` + ZWS 初期メッセージ） |
+| [src/channel_inspector.rs](../crates/discord_task_infra/src/channel_inspector.rs) | `ChannelInspector`（`guild_channels` + regex filter） |
+| [src/task_notifier.rs](../crates/discord_task_infra/src/task_notifier.rs) | `TaskNotifier`（`<@&role> タスク "title" が放置されています (<#thread>)`） |
+| [src/active_message_service.rs](../crates/discord_task_infra/src/active_message_service.rs) | `ActiveMessageService`（ハッシュ比較→skip / PATCH / POST / DELETE） |
+
+全構造体に `#[derive(Clone)]`（Arc 保持のため低コスト）。
+
+### wiremock テスト（Docker なしで全件パス）
+
+| ファイル | テスト件数 |
+|----------|-----------|
+| [tests/svc_interaction_responder.rs](../crates/discord_task_infra/tests/svc_interaction_responder.rs) | 2 件 |
+| [tests/svc_forum_service.rs](../crates/discord_task_infra/tests/svc_forum_service.rs) | 1 件 |
+| [tests/svc_channel_inspector.rs](../crates/discord_task_infra/tests/svc_channel_inspector.rs) | 2 件 |
+| [tests/svc_task_notifier.rs](../crates/discord_task_infra/tests/svc_task_notifier.rs) | 1 件 |
+| [tests/svc_active_message.rs](../crates/discord_task_infra/tests/svc_active_message.rs) | 4 件（testcontainers 依存 → Docker 環境でパス） |
+
+**重要な実装上の知見**: Twilight 0.16 の `proxy()` はホスト名のみ受け取る（スキームを含む URL 不可）。wiremock の `server.uri()` から `"http://"` を除去して渡す必要がある（`tests/common/mod.rs` 参照）。
+
+### Phase 6 検証
+
+| 確認 | 結果 |
+|------|------|
+| `cargo fmt --check` | ✅ |
+| `cargo clippy --workspace --all-targets -- -D warnings` | ✅ |
+| wiremock テスト 6 件（interaction / forum / inspector / notifier） | ✅ |
+| testcontainers テスト 4 件（active_message） | Docker 環境依存（ローカル Docker 未起動） |
+
+---
+
+## 10.6 Phase 7 成果物（完了）
+
+### discord_bot: DI 配線・ゲートウェイ・スケジューラ・グレースフルシャットダウン
+
+| ファイル | 役割 |
+|----------|------|
+| [src/di.rs](../crates/discord_bot/src/di.rs) | `AppState`, `ConcreteAnyEventHandler` 型エイリアス, `build_app_state/event_handlers/command_handlers` |
+| [src/gateway.rs](../crates/discord_bot/src/gateway.rs) | `run_gateway_loop`（Twilight StreamExt + InMemoryCache）+ コマンドディスパッチ |
+| [src/scheduler.rs](../crates/discord_bot/src/scheduler.rs) | 放置通知ループ + アクティブメッセージ同期ループ + `StubTranslator` |
+| [src/main.rs](../crates/discord_bot/src/main.rs) | DB 接続・migration・Shard 生成・scheduler spawn・`tokio::select!` + SIGINT |
+
+#### DI 型エイリアス
+
+```rust
+pub type ConcreteAnyEventHandler = AnyEventHandler<
+    SeaTaskRepository, SystemClock,
+    SeaGuildSettingsRepository, SeaChannelPatternRepository, TwilightForumService,
+>;
+```
+
+コマンドハンドラも同様に型エイリアスで静的ディスパッチを明示。
+
+#### コマンドディスパッチ
+
+- `"config"` → `ConfigSetInput`（`set` サブコマンド + `field`/`value` オプション解析）
+- `"task"` → チャンネル ID から thread_id 経由でタスク検索 → `TaskStateInput`
+- `"count"` → `CountInput`（`pattern` オプション省略可）
+
+#### スケジューラ
+
+- `StubTranslator`: Phase 8 まで i18n をキーそのまま返すスタブ
+- guild_settings entity を直クエリ (`active_channel_id IS NOT NULL`) で全サーバー取得
+
+### Phase 7 検証
+
+| 確認 | 結果 |
+|------|------|
+| `cargo build --workspace` | ✅ |
+| `cargo fmt --check` | ✅ |
+| `cargo clippy --workspace --all-targets -- -D warnings` | ✅ |
+| `cargo test --workspace`（Docker 不要テストのみ） | ✅ |
+
+---
+
+## 9. これからの作業（Phase 8 以降）
+
 - Phase 8: fluent-rs ベース Translator 実装、locale 解決順序テスト
 - Phase 9: Docker production 起動検証
 - Phase 10: GHCR push + release notes 自動化
