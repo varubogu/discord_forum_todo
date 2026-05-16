@@ -4,6 +4,7 @@
 use std::sync::Mutex;
 
 use core_lib::domain::{ChannelId, GuildId, MessageId, RoleId, Task, ThreadId};
+use core_lib::i18n::Locale;
 use discord_task::ports::{
     ActiveMessageService, ActiveMessageServiceError, ChannelInspector, ChannelInspectorError,
     ForumService, ForumServiceError, InteractionResponder, InteractionResponderError, TaskNotifier,
@@ -104,6 +105,7 @@ impl TaskNotifier for FakeTaskNotifier {
         channel_id: ChannelId,
         role_id: RoleId,
         _task: &Task,
+        _locale: &Locale,
     ) -> Result<(), TaskNotifierError> {
         self.calls.lock().unwrap().push((channel_id, role_id));
         Ok(())

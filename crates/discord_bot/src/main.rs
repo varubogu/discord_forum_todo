@@ -33,10 +33,12 @@ async fn main() -> Result<()> {
     let http = Arc::new(twilight_http::Client::new(cfg.discord_token.clone()));
     let application_id = http.current_user_application().await?.model().await?.id;
 
+    let locales_dir = std::path::Path::new(&cfg.locales_dir);
     let state = Arc::new(di::build_app_state(
         Arc::clone(&db),
         Arc::clone(&http),
         application_id,
+        locales_dir,
     ));
 
     let cache = InMemoryCache::builder()

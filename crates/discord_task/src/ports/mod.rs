@@ -5,6 +5,7 @@
 //! `discord_task_infra` (Phase 6).
 
 use core_lib::domain::{ChannelId, GuildId, MessageId, RoleId, Task, ThreadId};
+use core_lib::i18n::Locale;
 use thiserror::Error;
 
 // ── ForumService ──────────────────────────────────────────────────────────────
@@ -102,6 +103,7 @@ pub trait TaskNotifier: Send + Sync {
         channel_id: ChannelId,
         role_id: RoleId,
         task: &Task,
+        locale: &Locale,
     ) -> impl std::future::Future<Output = Result<(), TaskNotifierError>> + Send;
 }
 

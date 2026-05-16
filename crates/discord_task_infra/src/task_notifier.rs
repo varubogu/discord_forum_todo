@@ -5,32 +5,47 @@ use twilight_model::id::marker::ChannelMarker;
 use twilight_model::id::Id;
 
 use core_lib::domain::{ChannelId, RoleId, Task};
+use core_lib::i18n::{Locale, Translator};
+use core_lib::tr;
 use discord_task::ports::{TaskNotifier, TaskNotifierError};
 
-#[derive(Clone)]
-pub struct TwilightTaskNotifier {
+pub struct TwilightTaskNotifier<T: Translator> {
     client: Arc<Client>,
+    translator: Arc<T>,
 }
 
-impl TwilightTaskNotifier {
-    pub fn new(client: Arc<Client>) -> Self {
-        Self { client }
+impl<T: Translator> TwilightTaskNotifier<T> {
+    pub fn new(client: Arc<Client>, translator: Arc<T>) -> Self {
+        Self { client, translator }
     }
 }
 
-impl TaskNotifier for TwilightTaskNotifier {
+impl<T: Translator> Clone for TwilightTaskNotifier<T> {
+    fn clone(&self) -> Self {
+        Self {
+            client: Arc::clone(&self.client),
+            translator: Arc::clone(&self.translator),
+        }
+    }
+}
+
+impl<T: Translator> TaskNotifier for TwilightTaskNotifier<T> {
     async fn notify_stale(
         &self,
         channel_id: ChannelId,
         role_id: RoleId,
         task: &Task,
+        locale: &Locale,
     ) -> Result<(), TaskNotifierError> {
-        // Phase 8 will replace this with a Translator-based message.
-        let content = format!(
-            "<@&{}> タスク \"{}\" が放置されています (<#{}>)",
-            role_id.get(),
-            task.title,
-            task.thread_id.get(),
+        let role_str = role_id.get().to_string();
+        let thread_str = task.thread_id.get().to_string();
+        let content = tr!(
+            self.translator,
+            locale,
+            "notification-stale-task",
+            role = role_str.as_str(),
+            title = task.title.as_str(),
+            thread = thread_str.as_str(),
         );
 
         self.client

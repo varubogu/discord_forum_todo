@@ -40,7 +40,7 @@ pub fn render_active_tasks<T: Translator>(
     translator: &T,
     now: DateTime<Utc>,
 ) -> ActiveMessageContent {
-    let header_title = translator.t(locale, "active-tasks-header");
+    let header_title = translator.t(locale, "active-tasks-header", &[]);
     let header_meta = format!("(updated <t:{}:R>, locale: {})", now.timestamp(), locale.0);
 
     let mut not_started: Vec<&Task> = tasks
@@ -58,7 +58,7 @@ pub fn render_active_tasks<T: Translator>(
     if !not_started.is_empty() {
         sections.push(format!(
             "**{}**\n",
-            translator.t(locale, "active-tasks-section-not-started")
+            translator.t(locale, "active-tasks-section-not-started", &[])
         ));
         for t in &not_started {
             sections.push(format_task_line(t));
@@ -68,7 +68,7 @@ pub fn render_active_tasks<T: Translator>(
     if !in_progress.is_empty() {
         sections.push(format!(
             "**{}**\n",
-            translator.t(locale, "active-tasks-section-in-progress")
+            translator.t(locale, "active-tasks-section-in-progress", &[])
         ));
         for t in &in_progress {
             sections.push(format_task_line(t));
@@ -76,7 +76,7 @@ pub fn render_active_tasks<T: Translator>(
         sections.push(String::new());
     }
     if not_started.is_empty() && in_progress.is_empty() {
-        sections.push(translator.t(locale, "active-tasks-empty"));
+        sections.push(translator.t(locale, "active-tasks-empty", &[]));
     }
 
     let body = sections.join("\n");
@@ -129,11 +129,12 @@ fn paginate(body: &str) -> Vec<String> {
 mod tests {
     use super::*;
     use crate::domain::{GuildId, Task, TaskId, ThreadId};
+    use crate::i18n::TArgs;
     use chrono::TimeZone;
 
     struct StubTranslator;
     impl Translator for StubTranslator {
-        fn t(&self, _locale: &Locale, key: &str) -> String {
+        fn t(&self, _locale: &Locale, key: &str, _args: TArgs<'_>) -> String {
             match key {
                 "active-tasks-header" => "Active tasks".into(),
                 "active-tasks-section-not-started" => "Not started".into(),

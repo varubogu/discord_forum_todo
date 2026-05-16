@@ -1,6 +1,6 @@
 # 初期構築プランと進捗
 
-> 作成: 2026-05-14 / 最終更新: 2026-05-16
+> 作成: 2026-05-14 / 最終更新: 2026-05-16 (Phase 8 完了)
 > プロジェクト: `discord_forum_todo` — Discord フォーラムをタスクボードとして運用する Rust 製 Bot
 
 このファイルは初期構築の全体計画と現時点の進捗を 1 箇所にまとめたものです。詳細な設計ドキュメントは [`docs/architecture/`](../docs/architecture/) を参照してください。
@@ -79,7 +79,7 @@ migration          → sea-orm-migration のみ
 | 5 | discord_task: スラッシュコマンド/イベントハンドラ + Discord 固有ポート定義 + mock Twilight テスト | ✅ |
 | 6 | discord_task_infra: ポート実装 + Discord 固有テーブル | ✅ |
 | 7 | discord_bot: main、DI 配線、scheduler、graceful shutdown | ✅ |
-| 8 | i18n 実装: fluent-rs ベースの Translator 実体、ロケール解決 + テスト | ⏳ |
+| 8 | i18n 実装: fluent-rs ベースの Translator 実体、ロケール解決 + テスト | ✅ |
 | 9 | Docker 本番ビルド検証 + docker-compose で end-to-end 起動確認 | ⏳ |
 | 10 | release workflow（GHCR push, GitHub Release ノート）+ v0.1.0 タグ | ⏳ |
 
@@ -396,9 +396,78 @@ pub type ConcreteAnyEventHandler = AnyEventHandler<
 
 ---
 
-## 9. これからの作業（Phase 8 以降）
+## 11.5 Phase 8 成果物（完了）
 
-- Phase 8: fluent-rs ベース Translator 実装、locale 解決順序テスト
+### i18n: fluent-rs Translator 実装・ロケール解決・DI 接続
+
+#### core: `TArgs` / `ArgValue` / `tr!` マクロ
+
+| ファイル | 変更内容 |
+|---------|---------|
+| [crates/core/src/i18n/mod.rs](../crates/core/src/i18n/mod.rs) | `ArgValue<'a>` enum、`TArgs<'a>` 型エイリアス、`SUPPORTED_LOCALES` 定数、`tr!` マクロ追加。`Translator::t` に `args: TArgs<'_>` 引数追加 |
+| [crates/core/src/test_support/fake_translator.rs](../crates/core/src/test_support/fake_translator.rs) | `t` シグネチャを新 `TArgs<'_>` 引数に対応 |
+| [crates/core/src/usecases/render_active_tasks.rs](../crates/core/src/usecases/render_active_tasks.rs) | `translator.t(…, &[])` へ更新、内部 `StubTranslator` も対応 |
+
+#### FTL ロケールファイル
+
+| ファイル | 追加キー |
+|---------|---------|
+| [locales/ja-JP/commands.ftl](../locales/ja-JP/commands.ftl) | `active-tasks-header`, `active-tasks-section-not-started`, `active-tasks-section-in-progress`, `active-tasks-empty` |
+| [locales/en-US/commands.ftl](../locales/en-US/commands.ftl) | 同上（英語） |
+| [locales/ja-JP/notifications.ftl](../locales/ja-JP/notifications.ftl) | `notification-stale-task`（新規ファイル） |
+| [locales/en-US/notifications.ftl](../locales/en-US/notifications.ftl) | 同上（英語、新規ファイル） |
+| [locales/ja-JP/errors.ftl](../locales/ja-JP/errors.ftl), [locales/en-US/errors.ftl](../locales/en-US/errors.ftl) | スタブ（Phase 9 以降で追記） |
+| [locales/ja-JP/setup.ftl](../locales/ja-JP/setup.ftl), [locales/en-US/setup.ftl](../locales/en-US/setup.ftl) | スタブ（Phase 9 以降で追記） |
+
+#### core_infra: `FluentTranslator` 実装
+
+| ファイル | 内容 |
+|---------|-----|
+| [crates/core_infra/src/translator.rs](../crates/core_infra/src/translator.rs) | `FluentTranslator`：`locales_dir/{locale}/*.ftl` を全読み込み。`fluent_bundle::concurrent::FluentBundle`（`Send+Sync`）使用。ロケール解決フォールバック（指定ロケール → `en-US`）、キー欠落時は `tracing::warn!` + キー文字列返却 |
+| [crates/core_infra/src/lib.rs](../crates/core_infra/src/lib.rs) | `pub mod translator; pub use translator::FluentTranslator;` 追加 |
+| [crates/core_infra/tests/translator.rs](../crates/core_infra/tests/translator.rs) | 5 件のロケール解決テスト（en-US、ja-JP、未知ロケール→フォールバック、欠落キー、引数置換） |
+
+**Thread-safety の知見**: `fluent::FluentBundle` は `RefCell` ベースで非 `Sync`。`fluent_bundle::concurrent::FluentBundle` を直接使うことで追加 feature フラグなしに `Send+Sync` を実現。
+
+#### discord_task: `TaskNotifier` に locale 追加
+
+| ファイル | 変更内容 |
+|---------|---------|
+| [crates/discord_task/src/ports/mod.rs](../crates/discord_task/src/ports/mod.rs) | `TaskNotifier::notify_stale` に `locale: &Locale` 引数追加 |
+| [crates/discord_task/tests/common.rs](../crates/discord_task/tests/common.rs) | `FakeTaskNotifier::notify_stale` に `_locale: &Locale` 追加 |
+
+#### discord_task_infra: `TwilightTaskNotifier<T>` ジェネリック化
+
+| ファイル | 変更内容 |
+|---------|---------|
+| [crates/discord_task_infra/src/task_notifier.rs](../crates/discord_task_infra/src/task_notifier.rs) | `TwilightTaskNotifier<T: Translator>` ジェネリック化。`tr!` マクロで `notification-stale-task` を FTL から解決して送信 |
+| [crates/discord_task_infra/tests/svc_task_notifier.rs](../crates/discord_task_infra/tests/svc_task_notifier.rs) | `FakeTranslator` 使用、`&Locale::fallback()` を渡すよう更新 |
+
+#### discord_bot: DI 配線・`StubTranslator` 削除
+
+| ファイル | 変更内容 |
+|---------|---------|
+| [crates/discord_bot/src/config.rs](../crates/discord_bot/src/config.rs) | `locales_dir: String`（デフォルト `"./locales"`、env: `BOT_LOCALES_DIR`）追加 |
+| [crates/discord_bot/src/di.rs](../crates/discord_bot/src/di.rs) | `AppState` に `translator: Arc<FluentTranslator>` 追加。`ConcreteTaskNotifier = TwilightTaskNotifier<FluentTranslator>`。`build_app_state` が `locales_dir: &Path` を受け取り Translator をロード・共有 |
+| [crates/discord_bot/src/main.rs](../crates/discord_bot/src/main.rs) | `locales_dir` を `build_app_state` に渡すよう更新 |
+| [crates/discord_bot/src/scheduler.rs](../crates/discord_bot/src/scheduler.rs) | `StubTranslator` 完全削除。`run_active_message_sync` は `&*state.translator`、`run_stale_notification` は `row.locale` から `Locale` を解決して `notify_stale` に渡す |
+
+### Phase 8 検証
+
+| 確認 | 結果 |
+|------|------|
+| `cargo fmt --all` | ✅ |
+| `cargo clippy --workspace --all-targets -- -D warnings` (pedantic) | ✅ |
+| `cargo test -p discord_forum_todo_core` | ✅ 18 件パス |
+| `cargo test -p discord_forum_todo_discord_task` | ✅ 11 件パス |
+| `cargo test -p discord_forum_todo_core_infra -- translator` | ✅ 5 件パス |
+| `cargo test -p discord_task_infra` | ✅（wiremock テスト 6 件） |
+| `cargo test --workspace`（Docker 不要） | ✅（Docker 依存 3 件は引き続き Docker 環境でのみパス） |
+
+---
+
+## 9. これからの作業（Phase 9 以降）
+
 - Phase 9: Docker production 起動検証
 - Phase 10: GHCR push + release notes 自動化
 

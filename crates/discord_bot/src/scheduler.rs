@@ -4,27 +4,13 @@ use std::time::Duration;
 use core_infra::entities::guild_settings::{Column, Entity as GsEntity};
 use core_infra::SeaTaskRepository;
 use core_lib::domain::{ChannelId, GuildId};
-use core_lib::i18n::{Locale, Translator};
+use core_lib::i18n::Locale;
 use core_lib::ports::{Clock, TaskRepository};
 use core_lib::usecases::{render_active_tasks, DetectStaleTasks};
 use discord_task::ports::{ActiveMessageService, TaskNotifier};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
 use crate::di::AppState;
-
-struct StubTranslator;
-
-impl Translator for StubTranslator {
-    fn t(&self, _locale: &Locale, key: &str) -> String {
-        match key {
-            "active-tasks-header" => "Active tasks".into(),
-            "active-tasks-section-not-started" => "Not started".into(),
-            "active-tasks-section-in-progress" => "In progress".into(),
-            "active-tasks-empty" => "(no active tasks)".into(),
-            other => other.into(),
-        }
-    }
-}
 
 pub async fn run_scheduler(state: Arc<AppState>, interval_secs: u64, batch_size: u32) {
     let mut ticker = tokio::time::interval(Duration::from_secs(interval_secs));
@@ -49,9 +35,15 @@ async fn run_stale_notification(state: &AppState, batch_size: u32) {
 
     let mut notified_ids = Vec::new();
     for row in &rows {
+        let locale = row
+            .locale
+            .as_deref()
+            .and_then(|s| s.parse::<unic_langid::LanguageIdentifier>().ok())
+            .map_or_else(Locale::fallback, Locale);
+
         match state
             .notifier
-            .notify_stale(row.notify_channel_id, row.user_role_id, &row.task)
+            .notify_stale(row.notify_channel_id, row.user_role_id, &row.task, &locale)
             .await
         {
             Ok(()) => notified_ids.push(row.task.id),
@@ -108,7 +100,7 @@ async fn run_active_message_sync(state: &AppState) {
             .map_or_else(Locale::fallback, Locale);
 
         let now = state.clock.now();
-        let content = render_active_tasks(&tasks, &locale, &StubTranslator, now);
+        let content = render_active_tasks(&tasks, &locale, &*state.translator, now);
         let hash = content.hash(&locale);
 
         if let Err(e) = state

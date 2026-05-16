@@ -1,8 +1,9 @@
+use std::path::Path;
 use std::sync::Arc;
 
 use core_infra::{
-    SeaActiveMessageRepository, SeaChannelPatternRepository, SeaGuildSettingsRepository,
-    SeaTaskRepository, SystemClock,
+    FluentTranslator, SeaActiveMessageRepository, SeaChannelPatternRepository,
+    SeaGuildSettingsRepository, SeaTaskRepository, SystemClock,
 };
 use discord_task::commands::{ConfigSetHandler, CountHandler, TaskStateHandler};
 use discord_task::events::{
@@ -36,6 +37,8 @@ pub type ConcreteCountHandler = CountHandler<
     TwilightInteractionResponder,
 >;
 
+pub type ConcreteTaskNotifier = TwilightTaskNotifier<FluentTranslator>;
+
 pub struct ConcreteCommandHandlers {
     pub config_set: ConcreteConfigSetHandler,
     pub task_state: ConcreteTaskStateHandler,
@@ -45,10 +48,11 @@ pub struct ConcreteCommandHandlers {
 pub struct AppState {
     pub db: Arc<DatabaseConnection>,
     pub clock: SystemClock,
+    pub translator: Arc<FluentTranslator>,
     pub responder: TwilightInteractionResponder,
     pub forum_service: TwilightForumService,
     pub inspector: TwilightChannelInspector,
-    pub notifier: TwilightTaskNotifier,
+    pub notifier: ConcreteTaskNotifier,
     pub active_message_service: TwilightActiveMessageService,
 }
 
@@ -56,13 +60,17 @@ pub fn build_app_state(
     db: Arc<DatabaseConnection>,
     http: Arc<twilight_http::Client>,
     application_id: Id<ApplicationMarker>,
+    locales_dir: &Path,
 ) -> AppState {
+    let translator =
+        Arc::new(FluentTranslator::load(locales_dir).expect("failed to load locale files"));
     AppState {
         clock: SystemClock,
+        translator: Arc::clone(&translator),
         responder: TwilightInteractionResponder::new(Arc::clone(&http), application_id),
         forum_service: TwilightForumService::new(Arc::clone(&http)),
         inspector: TwilightChannelInspector::new(Arc::clone(&http)),
-        notifier: TwilightTaskNotifier::new(Arc::clone(&http)),
+        notifier: TwilightTaskNotifier::new(Arc::clone(&http), Arc::clone(&translator)),
         active_message_service: TwilightActiveMessageService::new(
             Arc::clone(&http),
             SeaActiveMessageRepository::new(Arc::clone(&db)),

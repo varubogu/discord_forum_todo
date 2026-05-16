@@ -15,6 +15,8 @@ pub struct BotConfig {
     pub shutdown_timeout_secs: u64,
     #[serde(default = "default_locale")]
     pub default_locale: String,
+    #[serde(default = "default_locales_dir")]
+    pub locales_dir: String,
 }
 
 fn default_scheduler_interval_secs() -> u64 {
@@ -31,6 +33,10 @@ fn default_shutdown_timeout_secs() -> u64 {
 
 fn default_locale() -> String {
     "en-US".to_string()
+}
+
+fn default_locales_dir() -> String {
+    "./locales".to_string()
 }
 
 impl BotConfig {
@@ -66,6 +72,8 @@ struct RawConfig {
     shutdown_timeout_secs: u64,
     #[serde(default = "default_locale")]
     default_locale: String,
+    #[serde(default = "default_locales_dir")]
+    locales_dir: String,
 }
 
 impl From<RawConfig> for BotConfig {
@@ -77,6 +85,7 @@ impl From<RawConfig> for BotConfig {
             scheduler_batch_size: r.scheduler_batch_size,
             shutdown_timeout_secs: r.shutdown_timeout_secs,
             default_locale: r.default_locale,
+            locales_dir: r.locales_dir,
         }
     }
 }

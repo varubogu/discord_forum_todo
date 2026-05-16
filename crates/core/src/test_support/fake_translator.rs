@@ -1,4 +1,4 @@
-use crate::i18n::{Locale, Translator};
+use crate::i18n::{Locale, TArgs, Translator};
 
 /// A trivial translator that echoes the key. Useful when a test only cares
 /// that *some* output is produced.
@@ -13,7 +13,7 @@ impl FakeTranslator {
 }
 
 impl Translator for FakeTranslator {
-    fn t(&self, _locale: &Locale, key: &str) -> String {
+    fn t(&self, _locale: &Locale, key: &str, _args: TArgs<'_>) -> String {
         key.to_string()
     }
 }
