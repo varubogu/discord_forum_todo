@@ -76,7 +76,7 @@ migration          → sea-orm-migration のみ
 | 2 | Cargo workspace + 全クレート骨格 + Docker + CI + locales プレースホルダ | ✅ |
 | 3 | core クレート: ドメイン + ポート + ユースケース + テストサポート + 単体/統合テスト | ✅ |
 | 4 | migration（SeaORM）+ core_infra の SeaORM リポジトリ実装 + testcontainers 統合テスト | ✅ |
-| 5 | discord_task: スラッシュコマンド/イベントハンドラ + Discord 固有ポート定義 + mock Twilight テスト | ⏳ |
+| 5 | discord_task: スラッシュコマンド/イベントハンドラ + Discord 固有ポート定義 + mock Twilight テスト | ✅ |
 | 6 | discord_task_infra: ポート実装 + Discord 固有テーブル | ⏳ |
 | 7 | discord_bot: main、DI 配線、scheduler、graceful shutdown | ⏳ |
 | 8 | i18n 実装: fluent-rs ベースの Translator 実体、ロケール解決 + テスト | ⏳ |
@@ -262,15 +262,60 @@ migration          → sea-orm-migration のみ
 
 ---
 
-## 9. これからの作業（Phase 5 以降）
+## 9.5 Phase 5 成果物（完了）
 
-### Phase 5: discord_task
+### Discord 固有ポート定義
 
-- Discord 固有ポート: `ForumService`, `ChannelInspector`, `ActiveMessageService`, `TaskNotifier`
-- スラッシュコマンド: `/config`, `/setup`, `/task`, `/count`
-- イベントハンドラ: ThreadCreate / ThreadUpdate / ThreadDelete / ChannelCreate
-- `enum_dispatch` で `AnyEventHandler` enum 構築
-- wiremock でモック Twilight HTTP テスト
+| ファイル | 内容 |
+|----------|------|
+| [ports/mod.rs](../crates/discord_task/src/ports/mod.rs) | `ForumService`, `ChannelInspector`, `ActiveMessageService`, `TaskNotifier`, `InteractionResponder` の 5 ポートトレイト + 各エラー型 |
+
+### スラッシュコマンドハンドラ
+
+| ハンドラ | コマンド | 使用ユースケース |
+|----------|---------|----------------|
+| `ConfigSetHandler<R,C,Resp>` | `/config set` | `RegisterGuildSettings` |
+| `TaskStateHandler<R,C,Resp>` | `/task done|cancel|…` | `TransitionTaskState` |
+| `CountHandler<PatternR,Insp,Resp>` | `/count` | `ChannelPatternRepository` + `ChannelInspector` |
+
+### ゲートウェイイベントハンドラ
+
+| ハンドラ | イベント | 処理 |
+|----------|---------|------|
+| `ThreadCreateHandler<R,C>` | `ThreadCreate` | `CreateTaskFromThread` ユースケース |
+| `ThreadDeleteHandler<R,C>` | `ThreadDelete` | `TaskRepository::soft_delete` |
+| `ChannelCreateHandler<GsR,PatternR,ForumSvc>` | `ChannelCreate` | Trigger パターン一致時に `ForumService::create_thread` |
+
+`AnyEventHandler<TaskR,C,GsR,PatternR,ForumSvc>` 静的ディスパッチ enum を定義（Phase 7 でコンクリート型を解決）
+
+### テスト（11 件すべて緑）
+
+| ファイル | テスト件数 |
+|----------|-----------|
+| [tests/common.rs](../crates/discord_task/tests/common.rs) | 共通フェイク（FakeForumService 等 5 種） |
+| [tests/cmd_config_set.rs](../crates/discord_task/tests/cmd_config_set.rs) | 2 件 |
+| [tests/cmd_task_state.rs](../crates/discord_task/tests/cmd_task_state.rs) | 2 件 |
+| [tests/evt_thread_create.rs](../crates/discord_task/tests/evt_thread_create.rs) | 4 件 |
+| [tests/evt_thread_delete.rs](../crates/discord_task/tests/evt_thread_delete.rs) | 3 件 |
+
+### Phase 5 検証
+
+| 確認 | 結果 |
+|------|------|
+| `cargo fmt --check` | ✅ |
+| `cargo clippy --workspace --all-targets -- -D warnings` | ✅ |
+| `cargo test -p discord_forum_todo_discord_task` | ✅ 11 件パス |
+| `cargo test -p discord_forum_todo_core` | ✅ 既存テスト維持 |
+
+### 設計上の注意
+
+- `GatewayEventHandler` は native `async fn`（`async-trait` 不使用）。`AnyEventHandler` は各バリアントを `await` する `async fn handle` でマッチするため `enum_dispatch` マクロは使わず手動実装
+- `FakeTaskRepository::find_by_thread` を修正して soft-delete 済みタスクを除外（real DB と一貫性確保）
+- `CreateTaskFromThread::repo`, `TransitionTaskState::repo` を `pub` にして adapter テストからの状態検査を可能に
+
+---
+
+## 9. これからの作業（Phase 6 以降）
 
 ### Phase 6 以降
 

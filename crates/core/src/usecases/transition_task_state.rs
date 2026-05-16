@@ -19,8 +19,9 @@ where
     R: TaskRepository,
     C: Clock,
 {
-    repo: R,
-    clock: C,
+    /// The task repository. Public so downstream adapter tests can inspect state.
+    pub repo: R,
+    pub clock: C,
 }
 
 impl<R, C> TransitionTaskState<R, C>

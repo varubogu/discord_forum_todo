@@ -62,7 +62,12 @@ impl TaskRepository for FakeTaskRepository {
 
     async fn find_by_thread(&self, thread_id: ThreadId) -> Result<Option<Task>, TaskRepoError> {
         let g = self.inner.lock().expect("FakeTaskRepository poisoned");
-        Ok(g.tasks.iter().find(|t| t.thread_id == thread_id).cloned())
+        // Filter soft-deleted tasks — consistent with the partial unique index
+        // `tasks_thread_id_unique ON tasks(thread_id) WHERE deleted_at IS NULL`.
+        Ok(g.tasks
+            .iter()
+            .find(|t| t.thread_id == thread_id && t.deleted_at.is_none())
+            .cloned())
     }
 
     async fn fetch_active(&self, guild_id: GuildId) -> Result<Vec<Task>, TaskRepoError> {

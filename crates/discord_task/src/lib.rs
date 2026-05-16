@@ -1,7 +1,12 @@
 //! `discord_forum_todo_discord_task` — Twilight-based adapter layer.
 //!
-//! Commands and event handlers land in Phase 5. This file only declares the
-//! module skeleton so other crates can depend on us during scaffolding.
+//! Provides:
+//! - [`ports`] — Discord-specific port traits (`ForumService`, `ChannelInspector`,
+//!   `ActiveMessageService`, `TaskNotifier`, `InteractionResponder`)
+//! - [`commands`] — Slash-command handler structs (`ConfigSetHandler`,
+//!   `TaskStateHandler`, `CountHandler`)
+//! - [`events`] — Gateway event handler structs + [`events::GatewayEventHandler`]
+//!   trait + [`events::AnyEventHandler`] dispatch enum
 
 pub mod commands;
 pub mod events;
