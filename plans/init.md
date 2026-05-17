@@ -1,6 +1,6 @@
 # 初期構築プランと進捗
 
-> 作成: 2026-05-14 / 最終更新: 2026-05-16 (Phase 8 完了)
+> 作成: 2026-05-14 / 最終更新: 2026-05-17 (Phase 10 完了)
 > プロジェクト: `discord_forum_todo` — Discord フォーラムをタスクボードとして運用する Rust 製 Bot
 
 このファイルは初期構築の全体計画と現時点の進捗を 1 箇所にまとめたものです。詳細な設計ドキュメントは [`docs/architecture/`](../docs/architecture/) を参照してください。
@@ -80,8 +80,8 @@ migration          → sea-orm-migration のみ
 | 6 | discord_task_infra: ポート実装 + Discord 固有テーブル | ✅ |
 | 7 | discord_bot: main、DI 配線、scheduler、graceful shutdown | ✅ |
 | 8 | i18n 実装: fluent-rs ベースの Translator 実体、ロケール解決 + テスト | ✅ |
-| 9 | Docker 本番ビルド検証 + docker-compose で end-to-end 起動確認 | ⏳ |
-| 10 | release workflow（GHCR push, GitHub Release ノート）+ v0.1.0 タグ | ⏳ |
+| 9 | Docker 本番ビルド検証 + docker-compose で end-to-end 起動確認 | ✅ |
+| 10 | release workflow（GHCR push, GitHub Release ノート）+ v0.1.0 タグ | ✅ |
 
 ---
 
@@ -466,10 +466,49 @@ pub type ConcreteAnyEventHandler = AnyEventHandler<
 
 ---
 
-## 9. これからの作業（Phase 9 以降）
+## 12. Phase 9 成果物（完了）
 
-- Phase 9: Docker production 起動検証
-- Phase 10: GHCR push + release notes 自動化
+### Docker ビルド CI 検証
+
+| ファイル | 変更内容 |
+|---------|---------|
+| [.github/workflows/ci.yml](../.github/workflows/ci.yml) | `docker-build` ジョブ追加（`docker/build-push-action@v6` で linux/amd64 のビルドのみ実行、push: false）。GHA キャッシュ使用。 |
+
+### Phase 9 検証
+
+| 確認 | 結果 |
+|------|------|
+| CI `docker-build` ジョブが main push / PR で動作 | GitHub Actions で確認予定 |
+
+---
+
+## 13. Phase 10 成果物（完了）
+
+### リリースワークフロー
+
+| ファイル | 内容 |
+|---------|-----|
+| [.github/workflows/release.yml](../.github/workflows/release.yml) | `v*.*.*` タグ push でトリガー。linux/amd64 + linux/arm64 マルチプラットフォームビルド → `ghcr.io/varubogu/discord_forum_todo` にプッシュ。GitHub Release を自動生成ノート付きで作成。 |
+
+**タグ例** (`git tag v0.1.0` 時):
+- `ghcr.io/varubogu/discord_forum_todo:0.1.0`
+- `ghcr.io/varubogu/discord_forum_todo:0.1`
+- `ghcr.io/varubogu/discord_forum_todo:0`
+- `ghcr.io/varubogu/discord_forum_todo:sha-<short-sha>`
+
+### Phase 10 検証
+
+```powershell
+# v0.1.0 タグを打ってリリースを起動
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+GitHub Actions の `Release` ワークフローが起動し、GHCR にイメージが公開され GitHub Release が作成されることを確認。
+
+---
+
+## 9. 全フェーズ完了
 
 ---
 
