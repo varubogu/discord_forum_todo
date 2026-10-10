@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # ------------- chef: cache cargo metadata for incremental builds ---------------
-FROM rust:1.82-bookworm AS chef
+FROM rust:1.99-bookworm AS chef
 WORKDIR /app
 RUN cargo install cargo-chef --locked --version 0.1.67
 

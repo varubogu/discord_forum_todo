@@ -20,6 +20,31 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      # Majors that share a release line. A single crate bump (for example
+      # twilight-model without twilight-http) duplicates types and does not compile.
+      twilight:
+        patterns:
+          - "twilight-*"
+        update-types:
+          - "major"
+      testcontainers:
+        patterns:
+          - "testcontainers"
+          - "testcontainers-modules"
+        update-types:
+          - "major"
+      fluent:
+        patterns:
+          - "fluent"
+          - "fluent-*"
+        update-types:
+          - "major"
+      sea-orm:
+        patterns:
+          - "sea-orm"
+          - "sea-orm-migration"
+        update-types:
+          - "major"
 
   # rust-toolchain.toml at the repository root.
   # The channel is currently the floating name "stable". Dependabot only
@@ -77,6 +102,8 @@ updates:
           - "patch"
 
   # GitHub Actions in .github/workflows (directory "/" is the documented root).
+  # One group covers every update type, including major, so action bumps land
+  # in a single PR instead of one PR per action.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -86,9 +113,6 @@ updates:
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 5
     groups:
-      minor-and-patch:
+      github-actions:
         patterns:
           - "*"
-        update-types:
-          - "minor"
-          - "patch"
