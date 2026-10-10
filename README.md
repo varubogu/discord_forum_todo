@@ -34,7 +34,7 @@ A Discord bot that maps `forum thread = task` and offers:
 
 ## Tech stack
 
-Rust (stable), Twilight, Tokio, PostgreSQL 16, SeaORM, fluent-rs, Axum (future), Docker, GitHub Actions.
+Rust (stable), Twilight, Tokio, PostgreSQL 18, SeaORM, fluent-rs, Axum (future), Docker, GitHub Actions.
 
 ## License
 

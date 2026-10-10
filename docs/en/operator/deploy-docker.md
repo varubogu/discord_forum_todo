@@ -71,6 +71,35 @@ docker compose -f docker/docker-compose.yml up -d
 
 The `migration` service applies new migrations on startup. `up` is idempotent.
 
+### PostgreSQL 16 to 18
+
+The official `postgres:18` image moved its data directory.
+
+- Default `PGDATA` is `/var/lib/postgresql/18/docker`.
+- Persist the volume at `/var/lib/postgresql`. A mount at `/var/lib/postgresql/data` is rejected even when the volume is empty.
+
+The Compose files use that mount. An existing PostgreSQL 16 volume (`discord_forum_todo_postgres-data`) cannot be reused by 18. Major versions do not start in place; dump with `pg_dump` and restore into a new 18 data directory.
+
+1. Dump while the 16 container is still running.
+
+```bash
+docker exec -t discord_forum_todo-postgres-1 pg_dump -U bot -d discord_forum_todo > backup.sql
+```
+
+2. Stop the stack and remove the old volume after you have checked the dump. Attaching 16 files at the 18 mount point fails on `PG_VERSION`.
+
+```bash
+docker compose -f docker/docker-compose.yml down
+docker volume rm discord_forum_todo_postgres-data
+```
+
+3. Start 18 and restore.
+
+```bash
+docker compose -f docker/docker-compose.yml up -d
+docker exec -i discord_forum_todo-postgres-1 psql -U bot -d discord_forum_todo < backup.sql
+```
+
 ## 7. Logs and metrics
 
 - JSON logs go to stdout: `docker compose logs -f bot`.

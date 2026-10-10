@@ -10,8 +10,10 @@ services:
       POSTGRES_DB: discord_forum_todo
     ports:
       - "5432:5432"
+    # Postgres 18+ stores data in /var/lib/postgresql/18/docker and declares
+    # VOLUME /var/lib/postgresql. A mount at /var/lib/postgresql/data is rejected.
     volumes:
-      - postgres-dev-data:/var/lib/postgresql/data
+      - postgres-dev-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bot -d discord_forum_todo"]
       interval: 5s
