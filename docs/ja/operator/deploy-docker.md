@@ -71,6 +71,35 @@ docker compose -f docker/docker-compose.yml up -d
 
 マイグレーションは `migration` サービスが起動時に自動適用します。`up` が冪等なので何度実行しても安全です。
 
+### PostgreSQL 16 から 18 へ
+
+公式 `postgres:18` イメージはデータの置き場所が変わっています。
+
+- 既定の `PGDATA` は `/var/lib/postgresql/18/docker` です。
+- 永続化ボリュームは `/var/lib/postgresql` にマウントします。`/var/lib/postgresql/data` へマウントしたままだと、空のボリュームでもコンテナは起動を拒否します。
+
+Compose ファイルはこのマウントに合わせています。既存の PostgreSQL 16 ボリューム（`discord_forum_todo_postgres-data`）は 18 では再利用できません。メジャーバージョンをまたぐインプレース起動はできず、`pg_dump` してから新しい 18 のデータディレクトリへリストアします。
+
+1. 16 のコンテナがまだ動いているうちにダンプします。
+
+```bash
+docker exec -t discord_forum_todo-postgres-1 pg_dump -U bot -d discord_forum_todo > backup.sql
+```
+
+2. スタックを止め、ダンプを確認してから古いボリュームを削除します。16 のファイルを 18 のマウント先に付け替えると、`PG_VERSION` の不一致で起動に失敗します。
+
+```bash
+docker compose -f docker/docker-compose.yml down
+docker volume rm discord_forum_todo_postgres-data
+```
+
+3. 18 で起動し、リストアします。
+
+```bash
+docker compose -f docker/docker-compose.yml up -d
+docker exec -i discord_forum_todo-postgres-1 psql -U bot -d discord_forum_todo < backup.sql
+```
+
 ## 7. ログとメトリクス
 
 - 標準出力に JSON ログが出ます。`docker compose logs -f bot` で確認。
