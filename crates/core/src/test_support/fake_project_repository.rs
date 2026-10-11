@@ -22,13 +22,16 @@ impl FakeProjectRepository {
 }
 
 impl ProjectRepository for FakeProjectRepository {
-    async fn upsert(&self, project: NewProject) -> Result<Project, ProjectRepoError> {
+    fn upsert(
+        &self,
+        project: NewProject,
+    ) -> impl std::future::Future<Output = Result<Project, ProjectRepoError>> + Send {
         let mut g = self.inner.lock().expect("FakeProject poisoned");
         if let Some(existing) = g.rows.iter_mut().find(|p| {
             p.guild_id == project.guild_id && p.forum_channel_id == project.forum_channel_id
         }) {
             existing.name.clone_from(&project.name);
-            return Ok(existing.clone());
+            return std::future::ready(Ok(existing.clone()));
         }
         g.next_id += 1;
         let persisted = Project {
@@ -39,23 +42,27 @@ impl ProjectRepository for FakeProjectRepository {
             created_at: project.created_at,
         };
         g.rows.push(persisted.clone());
-        Ok(persisted)
+        std::future::ready(Ok(persisted))
     }
 
-    async fn find_by_forum(
+    fn find_by_forum(
         &self,
         guild_id: GuildId,
         forum_channel_id: ChannelId,
-    ) -> Result<Option<Project>, ProjectRepoError> {
+    ) -> impl std::future::Future<Output = Result<Option<Project>, ProjectRepoError>> + Send {
         let g = self.inner.lock().expect("FakeProject poisoned");
-        Ok(g.rows
+        std::future::ready(Ok(g
+            .rows
             .iter()
             .find(|p| p.guild_id == guild_id && p.forum_channel_id == forum_channel_id)
-            .cloned())
+            .cloned()))
     }
 
-    async fn find_by_id(&self, id: ProjectId) -> Result<Option<Project>, ProjectRepoError> {
+    fn find_by_id(
+        &self,
+        id: ProjectId,
+    ) -> impl std::future::Future<Output = Result<Option<Project>, ProjectRepoError>> + Send {
         let g = self.inner.lock().expect("FakeProject poisoned");
-        Ok(g.rows.iter().find(|p| p.id == id).cloned())
+        std::future::ready(Ok(g.rows.iter().find(|p| p.id == id).cloned()))
     }
 }

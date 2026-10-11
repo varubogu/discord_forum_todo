@@ -51,7 +51,7 @@ async fn delete_by_name() {
     repo.delete_by_name(GuildId(7003), "delta").await.unwrap();
 
     let list = repo.list(GuildId(7003)).await.unwrap();
-    assert!(list.is_empty());
+    assert_eq!(list, []);
 }
 
 #[tokio::test]

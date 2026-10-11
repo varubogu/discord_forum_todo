@@ -65,16 +65,20 @@ figment = { version = "0.10", features = ["env", "toml"] }
 mockall = "0.13"
 assert_matches = "1"
 tokio-test = "0.4"
-testcontainers = "0.24"
-testcontainers-modules = { version = "0.12", features = ["postgres"] }
+# 0.27 drops tokio-tar (RUSTSEC-2025-0111) and bollard's rustls-pemfile
+# (RUSTSEC-2025-0134). Kept on 0.27 to match testcontainers-modules 0.15.
+testcontainers = "0.27"
+testcontainers-modules = { version = "0.15", features = ["postgres"] }
 wiremock = "0.6"
 
-# Internal crates (intra-workspace references)
-discord_forum_todo_core = { path = "crates/core" }
-discord_forum_todo_core_infra = { path = "crates/core_infra" }
-discord_forum_todo_discord_task = { path = "crates/discord_task" }
-discord_forum_todo_discord_task_infra = { path = "crates/discord_task_infra" }
-discord_forum_todo_migration = { path = "migration" }
+# Internal crates (intra-workspace references).
+# Version is required so cargo-deny does not treat `workspace = true` as a wildcard
+# (`unresolved-workspace-dependency` / `bans.wildcards`).
+discord_forum_todo_core = { version = "0.1.0", path = "crates/core" }
+discord_forum_todo_core_infra = { version = "0.1.0", path = "crates/core_infra" }
+discord_forum_todo_discord_task = { version = "0.1.0", path = "crates/discord_task" }
+discord_forum_todo_discord_task_infra = { version = "0.1.0", path = "crates/discord_task_infra" }
+discord_forum_todo_migration = { version = "0.1.0", path = "migration" }
 
 [workspace.lints.rust]
 unsafe_code = "deny"

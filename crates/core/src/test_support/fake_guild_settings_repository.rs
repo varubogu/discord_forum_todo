@@ -26,33 +26,36 @@ impl FakeGuildSettingsRepository {
 }
 
 impl GuildSettingsRepository for FakeGuildSettingsRepository {
-    async fn find(
+    fn find(
         &self,
         guild_id: GuildId,
-    ) -> Result<Option<GuildSettings>, GuildSettingsRepoError> {
+    ) -> impl std::future::Future<Output = Result<Option<GuildSettings>, GuildSettingsRepoError>> + Send
+    {
         let g = self.inner.lock().expect("FakeGuildSettings poisoned");
-        Ok(g.get(&guild_id).cloned())
+        std::future::ready(Ok(g.get(&guild_id).cloned()))
     }
 
-    async fn ensure_exists(
+    fn ensure_exists(
         &self,
         guild_id: GuildId,
         now: DateTime<Utc>,
-    ) -> Result<GuildSettings, GuildSettingsRepoError> {
+    ) -> impl std::future::Future<Output = Result<GuildSettings, GuildSettingsRepoError>> + Send
+    {
         let mut g = self.inner.lock().expect("FakeGuildSettings poisoned");
         let entry = g
             .entry(guild_id)
             .or_insert_with(|| GuildSettings::empty(guild_id, now));
-        Ok(entry.clone())
+        std::future::ready(Ok(entry.clone()))
     }
 
-    async fn apply(
+    fn apply(
         &self,
         guild_id: GuildId,
         update: GuildSettingsUpdate,
         actor: Option<UserId>,
         now: DateTime<Utc>,
-    ) -> Result<GuildSettings, GuildSettingsRepoError> {
+    ) -> impl std::future::Future<Output = Result<GuildSettings, GuildSettingsRepoError>> + Send
+    {
         let mut g = self.inner.lock().expect("FakeGuildSettings poisoned");
         let row = g
             .entry(guild_id)
@@ -70,6 +73,6 @@ impl GuildSettingsRepository for FakeGuildSettingsRepository {
         }
         row.updated_at = now;
         row.updated_by = actor;
-        Ok(row.clone())
+        std::future::ready(Ok(row.clone()))
     }
 }

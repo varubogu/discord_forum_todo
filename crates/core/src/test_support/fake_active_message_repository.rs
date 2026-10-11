@@ -17,23 +17,30 @@ impl FakeActiveMessageRepository {
 }
 
 impl ActiveMessageRepository for FakeActiveMessageRepository {
-    async fn find(
+    fn find(
         &self,
         guild_id: GuildId,
-    ) -> Result<Option<ActiveMessage>, ActiveMessageRepoError> {
+    ) -> impl std::future::Future<Output = Result<Option<ActiveMessage>, ActiveMessageRepoError>> + Send
+    {
         let g = self.inner.lock().expect("FakeActiveMessage poisoned");
-        Ok(g.get(&guild_id).cloned())
+        std::future::ready(Ok(g.get(&guild_id).cloned()))
     }
 
-    async fn upsert(&self, record: ActiveMessage) -> Result<(), ActiveMessageRepoError> {
+    fn upsert(
+        &self,
+        record: ActiveMessage,
+    ) -> impl std::future::Future<Output = Result<(), ActiveMessageRepoError>> + Send {
         let mut g = self.inner.lock().expect("FakeActiveMessage poisoned");
         g.insert(record.guild_id, record);
-        Ok(())
+        std::future::ready(Ok(()))
     }
 
-    async fn delete(&self, guild_id: GuildId) -> Result<(), ActiveMessageRepoError> {
+    fn delete(
+        &self,
+        guild_id: GuildId,
+    ) -> impl std::future::Future<Output = Result<(), ActiveMessageRepoError>> + Send {
         let mut g = self.inner.lock().expect("FakeActiveMessage poisoned");
         g.remove(&guild_id);
-        Ok(())
+        std::future::ready(Ok(()))
     }
 }
