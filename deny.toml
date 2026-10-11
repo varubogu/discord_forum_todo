@@ -9,7 +9,14 @@ feature-depth = 1
 db-path = "$CARGO_HOME/advisory-dbs"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "warn"
-ignore = []
+ignore = [
+    # sea-orm-macros -> sea-bae -> proc-macro-error2. The crate is unmaintained
+    # and RustSec says no patched release exists. sea-orm 1.1.20 (latest 1.x)
+    # and sea-orm 2.0.4 still enable `sea-bae` via the `derive`/`macros` feature
+    # this workspace needs, so there is no upgrade that drops the dependency.
+    # It is a proc-macro (compile time only) and is not linked into the bot binary.
+    { id = "RUSTSEC-2026-0173", reason = "proc-macro-error2 is unmaintained; pulled in only at compile time via sea-orm-macros/sea-bae, and neither sea-orm 1.1 nor 2.0 has dropped it" },
+]
 
 [licenses]
 allow = [
@@ -25,6 +32,14 @@ allow = [
     "Zlib",
     "CC0-1.0",
     "MPL-2.0",
+]
+# Mozilla CCADB root certificates shipped by webpki-roots / webpki-root-certs.
+# CDLA-Permissive-2.0 is a permissive data license (use, modification, and
+# redistribution with notice). Scoped to those crates so other packages cannot
+# enter the graph under the same license.
+exceptions = [
+    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots" },
+    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-root-certs" },
 ]
 confidence-threshold = 0.85
 

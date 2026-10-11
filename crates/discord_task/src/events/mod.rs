@@ -318,7 +318,5 @@ where
 /// Returns `true` if `name` matches the compiled regex `pattern`.
 /// Invalid patterns are treated as non-matching.
 fn regex_matches(pattern: &str, name: &str) -> bool {
-    regex::Regex::new(pattern)
-        .map(|re| re.is_match(name))
-        .unwrap_or(false)
+    regex::Regex::new(pattern).is_ok_and(|re| re.is_match(name))
 }

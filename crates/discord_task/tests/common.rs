@@ -33,17 +33,17 @@ impl FakeForumService {
 }
 
 impl ForumService for FakeForumService {
-    async fn create_thread(
+    fn create_thread(
         &self,
         guild_id: GuildId,
         forum_channel_id: ChannelId,
         title: &str,
-    ) -> Result<ThreadId, ForumServiceError> {
+    ) -> impl std::future::Future<Output = Result<ThreadId, ForumServiceError>> + Send {
         self.calls
             .lock()
             .unwrap()
             .push((guild_id, forum_channel_id, title.to_string()));
-        Ok(ThreadId(self.next_thread_id))
+        std::future::ready(Ok(ThreadId(self.next_thread_id)))
     }
 }
 
@@ -61,12 +61,12 @@ impl FakeChannelInspector {
 }
 
 impl ChannelInspector for FakeChannelInspector {
-    async fn count_matching_channels(
+    fn count_matching_channels(
         &self,
         _guild_id: GuildId,
         _pattern: &str,
-    ) -> Result<u64, ChannelInspectorError> {
-        Ok(self.count)
+    ) -> impl std::future::Future<Output = Result<u64, ChannelInspectorError>> + Send {
+        std::future::ready(Ok(self.count))
     }
 }
 
@@ -79,15 +79,16 @@ pub struct FakeActiveMessageService {
 }
 
 impl ActiveMessageService for FakeActiveMessageService {
-    async fn sync_active_message(
+    fn sync_active_message(
         &self,
         _guild_id: GuildId,
         _channel_id: ChannelId,
         _pages: Vec<String>,
         _hash: Vec<u8>,
-    ) -> Result<Vec<MessageId>, ActiveMessageServiceError> {
+    ) -> impl std::future::Future<Output = Result<Vec<MessageId>, ActiveMessageServiceError>> + Send
+    {
         *self.calls.lock().unwrap() += 1;
-        Ok(vec![])
+        std::future::ready(Ok(vec![]))
     }
 }
 
@@ -100,15 +101,15 @@ pub struct FakeTaskNotifier {
 }
 
 impl TaskNotifier for FakeTaskNotifier {
-    async fn notify_stale(
+    fn notify_stale(
         &self,
         channel_id: ChannelId,
         role_id: RoleId,
         _task: &Task,
         _locale: &Locale,
-    ) -> Result<(), TaskNotifierError> {
+    ) -> impl std::future::Future<Output = Result<(), TaskNotifierError>> + Send {
         self.calls.lock().unwrap().push((channel_id, role_id));
-        Ok(())
+        std::future::ready(Ok(()))
     }
 }
 
@@ -134,31 +135,31 @@ impl FakeInteractionResponder {
 }
 
 impl InteractionResponder for FakeInteractionResponder {
-    async fn respond_ephemeral(
+    fn respond_ephemeral(
         &self,
         interaction_id: u64,
         _token: &str,
         content: &str,
-    ) -> Result<(), InteractionResponderError> {
+    ) -> impl std::future::Future<Output = Result<(), InteractionResponderError>> + Send {
         self.responses.lock().unwrap().push(Response {
             interaction_id,
             ephemeral: true,
             content: content.to_string(),
         });
-        Ok(())
+        std::future::ready(Ok(()))
     }
 
-    async fn respond_public(
+    fn respond_public(
         &self,
         interaction_id: u64,
         _token: &str,
         content: &str,
-    ) -> Result<(), InteractionResponderError> {
+    ) -> impl std::future::Future<Output = Result<(), InteractionResponderError>> + Send {
         self.responses.lock().unwrap().push(Response {
             interaction_id,
             ephemeral: false,
             content: content.to_string(),
         });
-        Ok(())
+        std::future::ready(Ok(()))
     }
 }

@@ -38,10 +38,13 @@ impl FakeTaskRepository {
 }
 
 impl TaskRepository for FakeTaskRepository {
-    async fn insert(&self, task: NewTask) -> Result<Task, TaskRepoError> {
+    fn insert(
+        &self,
+        task: NewTask,
+    ) -> impl std::future::Future<Output = Result<Task, TaskRepoError>> + Send {
         let mut g = self.inner.lock().expect("FakeTaskRepository poisoned");
         if g.tasks.iter().any(|t| t.thread_id == task.thread_id) {
-            return Err(TaskRepoError::ThreadAlreadyMapped);
+            return std::future::ready(Err(TaskRepoError::ThreadAlreadyMapped));
         }
         g.next_id += 1;
         let persisted = Task {
@@ -57,71 +60,83 @@ impl TaskRepository for FakeTaskRepository {
             deleted_at: None,
         };
         g.tasks.push(persisted.clone());
-        Ok(persisted)
+        std::future::ready(Ok(persisted))
     }
 
-    async fn find_by_thread(&self, thread_id: ThreadId) -> Result<Option<Task>, TaskRepoError> {
+    fn find_by_thread(
+        &self,
+        thread_id: ThreadId,
+    ) -> impl std::future::Future<Output = Result<Option<Task>, TaskRepoError>> + Send {
         let g = self.inner.lock().expect("FakeTaskRepository poisoned");
         // Filter soft-deleted tasks — consistent with the partial unique index
         // `tasks_thread_id_unique ON tasks(thread_id) WHERE deleted_at IS NULL`.
-        Ok(g.tasks
+        std::future::ready(Ok(g
+            .tasks
             .iter()
             .find(|t| t.thread_id == thread_id && t.deleted_at.is_none())
-            .cloned())
+            .cloned()))
     }
 
-    async fn fetch_active(&self, guild_id: GuildId) -> Result<Vec<Task>, TaskRepoError> {
+    fn fetch_active(
+        &self,
+        guild_id: GuildId,
+    ) -> impl std::future::Future<Output = Result<Vec<Task>, TaskRepoError>> + Send {
         let g = self.inner.lock().expect("FakeTaskRepository poisoned");
-        Ok(g.tasks
+        std::future::ready(Ok(g
+            .tasks
             .iter()
             .filter(|t| t.guild_id == guild_id && t.deleted_at.is_none() && t.state.is_open())
             .cloned()
-            .collect())
+            .collect()))
     }
 
-    async fn transition_state(
+    fn transition_state(
         &self,
         id: TaskId,
         next: TaskState,
         at: DateTime<Utc>,
-    ) -> Result<Task, TaskRepoError> {
+    ) -> impl std::future::Future<Output = Result<Task, TaskRepoError>> + Send {
         let mut g = self.inner.lock().expect("FakeTaskRepository poisoned");
-        let task = g
-            .tasks
-            .iter_mut()
-            .find(|t| t.id == id)
-            .ok_or(TaskRepoError::NotFound)?;
+        let Some(task) = g.tasks.iter_mut().find(|t| t.id == id) else {
+            return std::future::ready(Err(TaskRepoError::NotFound));
+        };
         task.state = next;
         task.last_state_changed_at = at;
-        Ok(task.clone())
+        std::future::ready(Ok(task.clone()))
     }
 
-    async fn soft_delete(&self, id: TaskId, at: DateTime<Utc>) -> Result<(), TaskRepoError> {
+    fn soft_delete(
+        &self,
+        id: TaskId,
+        at: DateTime<Utc>,
+    ) -> impl std::future::Future<Output = Result<(), TaskRepoError>> + Send {
         let mut g = self.inner.lock().expect("FakeTaskRepository poisoned");
-        let task = g
-            .tasks
-            .iter_mut()
-            .find(|t| t.id == id)
-            .ok_or(TaskRepoError::NotFound)?;
+        let Some(task) = g.tasks.iter_mut().find(|t| t.id == id) else {
+            return std::future::ready(Err(TaskRepoError::NotFound));
+        };
         task.deleted_at = Some(at);
-        Ok(())
+        std::future::ready(Ok(()))
     }
 
-    async fn fetch_stale_for_notify(
+    fn fetch_stale_for_notify(
         &self,
         _query: StaleQuery<'_>,
-    ) -> Result<Vec<StaleTaskRow>, TaskRepoError> {
+    ) -> impl std::future::Future<Output = Result<Vec<StaleTaskRow>, TaskRepoError>> + Send {
         let g = self.inner.lock().expect("FakeTaskRepository poisoned");
-        Ok(g.stale_queue.clone())
+        std::future::ready(Ok(g.stale_queue.clone()))
     }
 
-    async fn mark_notified(&self, ids: &[TaskId], at: DateTime<Utc>) -> Result<(), TaskRepoError> {
+    fn mark_notified(
+        &self,
+        ids: &[TaskId],
+        at: DateTime<Utc>,
+    ) -> impl std::future::Future<Output = Result<(), TaskRepoError>> + Send {
         let mut g = self.inner.lock().expect("FakeTaskRepository poisoned");
         for id in ids {
             if let Some(t) = g.tasks.iter_mut().find(|t| t.id == *id) {
                 t.last_notified_at = Some(at);
             }
         }
-        Ok(())
+        std::future::ready(Ok(()))
     }
 }

@@ -22,28 +22,31 @@ impl FakeChannelPatternRepository {
 }
 
 impl ChannelPatternRepository for FakeChannelPatternRepository {
-    async fn list(
+    fn list(
         &self,
         guild_id: GuildId,
-    ) -> Result<Vec<ChannelPattern>, ChannelPatternRepoError> {
+    ) -> impl std::future::Future<Output = Result<Vec<ChannelPattern>, ChannelPatternRepoError>> + Send
+    {
         let g = self.inner.lock().expect("FakeChannelPattern poisoned");
-        Ok(g.rows
+        std::future::ready(Ok(g
+            .rows
             .iter()
             .filter(|p| p.guild_id == guild_id)
             .cloned()
-            .collect())
+            .collect()))
     }
 
-    async fn insert(
+    fn insert(
         &self,
         pattern: NewChannelPattern,
-    ) -> Result<ChannelPattern, ChannelPatternRepoError> {
+    ) -> impl std::future::Future<Output = Result<ChannelPattern, ChannelPatternRepoError>> + Send
+    {
         let mut g = self.inner.lock().expect("FakeChannelPattern poisoned");
         if g.rows
             .iter()
             .any(|p| p.guild_id == pattern.guild_id && p.name == pattern.name)
         {
-            return Err(ChannelPatternRepoError::DuplicateName(pattern.name));
+            return std::future::ready(Err(ChannelPatternRepoError::DuplicateName(pattern.name)));
         }
         g.next_id += 1;
         let persisted = ChannelPattern {
@@ -55,29 +58,30 @@ impl ChannelPatternRepository for FakeChannelPatternRepository {
             created_at: pattern.created_at,
         };
         g.rows.push(persisted.clone());
-        Ok(persisted)
+        std::future::ready(Ok(persisted))
     }
 
-    async fn delete_by_name(
+    fn delete_by_name(
         &self,
         guild_id: GuildId,
         name: &str,
-    ) -> Result<(), ChannelPatternRepoError> {
+    ) -> impl std::future::Future<Output = Result<(), ChannelPatternRepoError>> + Send {
         let mut g = self.inner.lock().expect("FakeChannelPattern poisoned");
         let before = g.rows.len();
         g.rows
             .retain(|p| !(p.guild_id == guild_id && p.name == name));
         if g.rows.len() == before {
-            return Err(ChannelPatternRepoError::NotFound);
+            return std::future::ready(Err(ChannelPatternRepoError::NotFound));
         }
-        Ok(())
+        std::future::ready(Ok(()))
     }
 
-    async fn find_by_id(
+    fn find_by_id(
         &self,
         id: ChannelPatternId,
-    ) -> Result<Option<ChannelPattern>, ChannelPatternRepoError> {
+    ) -> impl std::future::Future<Output = Result<Option<ChannelPattern>, ChannelPatternRepoError>> + Send
+    {
         let g = self.inner.lock().expect("FakeChannelPattern poisoned");
-        Ok(g.rows.iter().find(|p| p.id == id).cloned())
+        std::future::ready(Ok(g.rows.iter().find(|p| p.id == id).cloned()))
     }
 }
