@@ -1252,8 +1252,6 @@ dependencies = [
  "async-trait",
  "sea-orm-migration",
  "tokio",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
