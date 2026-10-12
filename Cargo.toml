@@ -12,7 +12,10 @@ members = [
 
 [workspace.package]
 edition = "2021"
-rust-version = "1.82"
+# Highest rust-version in the resolved graph: sea-orm 2.0.4 and sqlx 0.9
+# (both 1.94). The compiler in use is stable / rust:1.99-bookworm, so this
+# field does not select a newer toolchain or a newer glibc.
+rust-version = "1.94"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/varubogu/discord_forum_todo"
 authors = ["varubogu"]
@@ -24,7 +27,7 @@ tokio-util = { version = "0.7", features = ["rt"] }
 futures = "0.3"
 
 # Errors / logging
-thiserror = "1"
+thiserror = "2"
 anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
@@ -43,11 +46,11 @@ twilight-cache-inmemory = "0.17"
 twilight-util = { version = "0.17", features = ["builder"] }
 
 # Persistence
-sea-orm = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono", "with-uuid", "with-json"] }
-sea-orm-migration = { version = "1.1", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
+sea-orm = { version = "2.0", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono", "with-uuid", "with-json"] }
+sea-orm-migration = { version = "2.0", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
 
 # i18n
-fluent = "0.16"
+fluent = "0.17"
 fluent-bundle = "0.16"
 unic-langid = { version = "0.9", features = ["macros"] }
 intl-memoizer = "0.5"
@@ -57,7 +60,7 @@ async-trait = "0.1"
 enum_dispatch = "0.3"
 dashmap = "6"
 regex = "1"
-sha2 = "0.10"
+sha2 = "0.11"
 hex = "0.4"
 figment = { version = "0.10", features = ["env", "toml"] }
 

@@ -206,9 +206,9 @@ impl TaskRepository for SeaTaskRepository {
         );
 
         let mut values: Vec<sea_orm::Value> = vec![
-            sea_orm::Value::ChronoDateTimeWithTimeZone(Some(Box::new(
+            sea_orm::Value::ChronoDateTimeWithTimeZone(Some(
                 now.with_timezone(&FixedOffset::east_opt(0).unwrap()),
-            ))),
+            )),
             sea_orm::Value::BigInt(Some(i64::from(batch_size))),
         ];
         if let Some(guilds) = guild_ids {
