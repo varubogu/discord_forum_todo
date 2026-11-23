@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use twilight_http::Client;
 use twilight_model::channel::message::MessageFlags;
-use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
 use twilight_model::id::marker::{ApplicationMarker, InteractionMarker};
 use twilight_model::id::Id;
-use twilight_util::builder::InteractionResponseDataBuilder;
+use twilight_util::builder::interaction_response::ChannelMessageBuilder;
 
 use discord_task::ports::{InteractionResponder, InteractionResponderError};
 
@@ -30,15 +29,11 @@ impl TwilightInteractionResponder {
         content: &str,
         flags: Option<MessageFlags>,
     ) -> Result<(), InteractionResponderError> {
-        let mut builder = InteractionResponseDataBuilder::new().content(content.to_string());
+        let mut builder = ChannelMessageBuilder::new().content(content);
         if let Some(f) = flags {
             builder = builder.flags(f);
         }
-        let data = builder.build();
-        let response = InteractionResponse {
-            kind: InteractionResponseType::ChannelMessageWithSource,
-            data: Some(data),
-        };
+        let response = builder.build();
 
         self.client
             .interaction(self.application_id)
